@@ -17,7 +17,7 @@ class Produk {
       id: obj['id'],
       kodeProduk: obj['kode_produk'],
       namaProduk: obj['nama_produk'],
-      hargaProduk: obj['harga'],
+      hargaProduk: int.tryParse(obj['harga'].toString()) ?? 0,
     );
   }
 
@@ -27,7 +27,7 @@ class Produk {
       "id": id,
       "kode_produk": kodeProduk,
       "nama_produk": namaProduk,
-      "harga": hargaProduk,
+      "harga": hargaProduk.toString(),
     };
   }
 }

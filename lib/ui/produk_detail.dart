@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:tokokita/bloc/produk_bloc.dart';
 import 'package:tokokita/model/produk.dart';
 import 'package:tokokita/ui/produk_form.dart';
 import 'package:tokokita/ui/produk_page.dart';
-import 'package:tokokita/bloc/produk_local.dart';
+import 'package:tokokita/widget/success_dialog.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 // ignore: must_be_immutable
 class ProdukDetail extends StatefulWidget {
@@ -34,7 +36,7 @@ class _ProdukDetailState extends State<ProdukDetail> {
               style: const TextStyle(fontSize: 18.0),
             ),
             Text(
-              "Harga : Rp. ${widget.produk!.hargaProduk.toString()}",
+              "Harga : Rp${widget.produk!.hargaProduk.toString()}",
               style: const TextStyle(fontSize: 18.0),
             ),
             _tombolHapusEdit()
@@ -51,19 +53,15 @@ class _ProdukDetailState extends State<ProdukDetail> {
         // Tombol Edit
         OutlinedButton(
           child: const Text("EDIT"),
-          onPressed: () async {
-            final updatedProduk = await Navigator.push(
+          onPressed: () {
+            Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => ProdukForm(produk: widget.produk!),
+                builder: (context) => ProdukForm(
+                  produk: widget.produk!,
+                ),
               ),
-            );
-
-            if (updatedProduk != null) {
-              setState(() {
-                widget.produk = updatedProduk;
-              });
-            }
+            );  
           },
         ),
         // Tombol Hapus
@@ -83,40 +81,43 @@ class _ProdukDetailState extends State<ProdukDetail> {
         OutlinedButton(
           child: const Text("Ya"),
           onPressed: () {
-            ProdukLocal.deleteProduk(widget.produk!.id!).then((value) {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (c) => const ProdukPage()),
-              );
+            ProdukBloc.deleteProduk(id: widget.produk!.id!).then(
+              (value) {
+                // ignore: use_build_context_synchronously
+                Navigator.pop(context); 
+                showDialog(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (BuildContext context) => SuccessDialog(
+                    description: "Produk berhasil dihapus",
+                    okClick: () {
+                      Navigator.pop(context);
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const ProdukPage()),
+                        (route) => false,
+                      );
+                    },
+                  ),
+                );
+              },
+              onError: (error) {
+                showDialog(
+                  // ignore: use_build_context_synchronously
+                  context: context,
+                  builder: (BuildContext context) => const WarningDialog(
+                    description: "Hapus gagal, silahkan coba lagi",
+                ));
             });
           },
         ),
-        //tombol batal
-        OutlinedButton(
-          child: const Text("Batal"),
-          onPressed: () => Navigator.pop(context),
-        )
-      ],
+          //tombol batal
+          OutlinedButton(
+            child: const Text("Batal"),
+            onPressed: () => Navigator.pop(context),
+          )
+        ],
     );
     showDialog(builder: (context) => alertDialog, context: context);
-  }
-}
-
-class WarningDialog extends StatelessWidget {
-  final String description;
-
-  const WarningDialog({super.key, required this.description});
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      content: Text(description),
-      actions: [
-        TextButton(
-          child: const Text("OK"),
-          onPressed: () => Navigator.pop(context),
-        )
-      ],
-    );
   }
 }

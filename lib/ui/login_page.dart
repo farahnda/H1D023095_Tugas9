@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:tokokita/bloc/auth_local.dart';
+import 'package:tokokita/bloc/login_bloc.dart';
+import 'package:tokokita/helpers/user_info.dart';
+// import 'package:tokokita/ui/produk_detail.dart';
 import 'package:tokokita/ui/registrasi_page.dart';
 import 'package:tokokita/ui/produk_page.dart';
+import 'package:tokokita/widget/success_dialog.dart';
+import 'package:tokokita/widget/warning_dialog.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -30,36 +34,7 @@ class _LoginPageState extends State<LoginPage> {
               children: [
                 _emailTextField(),
                 _passwordTextField(),
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      setState(() => _isLoading = true);
-
-                      try {
-                        bool sukses = await AuthLocal.login(
-                          email: _emailTextboxController.text,
-                          password: _passwordTextboxController.text,
-                        );
-
-                        if (sukses) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const ProdukPage()),
-                          );
-                        }
-                      } catch (e) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text("Login gagal")));
-                      }
-
-                      setState(() => _isLoading = false);
-                    }
-                  },
-                  child: _isLoading
-                      ? CircularProgressIndicator()
-                      : const Text("Login"),
-                ),
-                // _buttonLogin(),
+                _buttonLogin(),
                 const SizedBox(
                   height: 30,
                 ),
@@ -106,13 +81,65 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   //Membuat Tombol Login
-  // Widget _buttonLogin() {
-  //   return ElevatedButton(
-  //     child: const Text("Login"),
-  //     onPressed: () {
-  //       var validate = _formKey.currentState!.validate();
-  //     });
-  // }
+  Widget _buttonLogin() {
+    return ElevatedButton(
+      child: const Text("Login"),
+      onPressed: () {
+        var validate = _formKey.currentState!.validate();
+        if (validate) {
+          if (!_isLoading) _submit();
+        }
+    });
+  }
+  
+  void _submit() {
+    _formKey.currentState!.save();
+    setState(() {
+      _isLoading = true;
+    });    
+    LoginBloc.login(
+      email: _emailTextboxController.text,
+      password: _passwordTextboxController.text)
+      .then((value) async {
+        if (value.code == 200) {
+          await UserInfo().setToken(value.token.toString());
+          await UserInfo().setUserID(int.parse(value.userID.toString()));
+          showDialog(
+            // ignore: use_build_context_synchronously
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => SuccessDialog(
+              description: "Login berhasil, selamat datang!",
+              okClick: () {
+                Navigator.pop(context);
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const ProdukPage()),
+                  (route) => false,
+                );
+              },
+            ),
+          );
+        } else {
+          showDialog(
+            // ignore: use_build_context_synchronously
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) => const WarningDialog(
+              description: "Login gagal, silahkan coba lagi",
+          ));
+        }
+      }, onError: (error) {
+        // ignore: avoid_print
+        print(error);
+        showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          barrierDismissible: false,
+          builder: (BuildContext context) => const WarningDialog(
+            description: "Login gagal, silahkan coba lagi",
+        ));
+      });
+  }
 
   // Membuat menu untuk membuka halaman registrasi
   Widget _menuRegistrasi() {
